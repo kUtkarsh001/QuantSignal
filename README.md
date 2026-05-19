@@ -2,4 +2,4 @@
 
 AI-Driven Algorithmic Trend Analyzer
 
-Built by Utkarsh — ECE B.Tech Year 3 → 4
+Built by Utkarsh — ECE B.Tech Year 3 

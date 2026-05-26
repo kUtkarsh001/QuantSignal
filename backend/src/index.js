@@ -1,10 +1,13 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import { connectDB } from './config/db.js';
 
 // ── Route imports ─────────────────────────────────────────────────────────────
-import authRoutes from './routes/auth.js';
+import authRoutes   from './routes/auth.js';
+import marketRoutes from './routes/market.js';
+import userRoutes   from './routes/user.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -13,8 +16,29 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+// ── Rate Limiter — POST /api/agent/analyze only ───────────────────────────────
+// Architecture §9.2: 10 requests per minute per user (identified by JWT userId).
+// Applied here before the route is mounted so it is ready when Day 13 wires it up.
+export const analyzeLimiter = rateLimit({
+  windowMs:         60 * 1000,  // 1 minute window
+  max:              10,          // 10 requests per window
+  standardHeaders:  true,
+  legacyHeaders:    false,
+  keyGenerator:     (req) => req.user?.id || req.ip,  // per-user, not per-IP
+  message: {
+    success: false,
+    error: {
+      code:    'RATE_LIMIT_EXCEEDED',
+      message: 'Too many analysis requests. Limit is 10 per minute. Please wait.'
+    }
+  }
+});
+
 // ── Routes ────────────────────────────────────────────────────────────────────
-app.use('/api/auth', authRoutes);
+app.use('/api/auth',   authRoutes);
+app.use('/api/market', marketRoutes);
+app.use('/api/user',   userRoutes);
+// /api/agent will be mounted on Day 13 — analyzeLimiter applied there
 
 // ── Health check — no auth required ──────────────────────────────────────────
 app.get('/health', (req, res) => {

@@ -21,10 +21,14 @@ import { getPineconeIndex } from '../config/pinecone.js';
  * CRITICAL: Always use namespace('user-${userId}') on Pinecone calls.
  */
 
-// ── OpenAI Embeddings — text-embedding-ada-002 (1536 dims) ───────────────────
+// ── NVIDIA Embeddings — nv-embedqa-e5-v5 (1024 dims) ────────────────────────
+// Using OpenAI API client pointing to NVIDIA NIM (OpenAI-compatible)
 const embeddings = new OpenAIEmbeddings({
-  openAIApiKey: process.env.OPENAI_API_KEY,
-  modelName:    'text-embedding-ada-002'
+  openAIApiKey: process.env.NVIDIA_API_KEY,
+  configuration: {
+    baseURL: "https://integrate.api.nvidia.com/v1",
+  },
+  modelName: "nvidia/nv-embedqa-e5-v5"
 });
 
 // ── Text Splitter — 1000 chars per chunk, 200 char overlap ───────────────────

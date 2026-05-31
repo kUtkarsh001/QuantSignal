@@ -1,4 +1,5 @@
 import { OpenAIEmbeddings } from '@langchain/openai';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import KbDocument from '../models/KbDocument.js';
@@ -155,4 +156,111 @@ export async function ingestPDF(documentId, pdfBuffer, userId, fileName) {
 function estimatePageNumber(chunkIndex, totalChunks, totalPages) {
   if (!totalPages || totalPages <= 0) return null;
   return Math.min(Math.ceil(((chunkIndex + 1) / totalChunks) * totalPages), totalPages);
+}
+
+// ── Gemini LLM — gemini-1.5-flash for RAG Q&A ───────────────────────────────
+const llm = new ChatGoogleGenerativeAI({
+  apiKey:      process.env.GEMINI_API_KEY,
+  model:       'gemini-1.5-flash',
+  temperature: 0.3,       // Low temp for factual answers
+  maxOutputTokens: 1024
+});
+
+/**
+ * queryKnowledgeBase — RAG Query Pipeline
+ * Architecture §5.4
+ *
+ * Steps:
+ *   1. Embed user query using OpenAI text-embedding-ada-002
+ *   2. Search Pinecone namespace('user-{userId}') with topK nearest neighbours
+ *   3. Format retrieved chunks with [Source: FileName, Page X] headers
+ *   4. Pass context + query to Google Gemini LLM
+ *   5. Return { answer, sources, latencyMs }
+ *
+ * CRITICAL: Always use namespace('user-${userId}') — never query default namespace.
+ *
+ * @param {string}   query        User's question (min 5 chars)
+ * @param {string}   userId       User ID from JWT (for Pinecone namespace)
+ * @param {number}   topK         Number of nearest neighbours (1-10, default 3)
+ * @param {string[]} documentIds  Optional filter to specific documents
+ * @returns {Promise<{answer: string, sources: Array, latencyMs: number}>}
+ */
+export async function queryKnowledgeBase(query, userId, topK = 3, documentIds = null) {
+  const startTime = Date.now();
+
+  // ── Step 1: Embed the user query ────────────────────────────────────────
+  const queryVector = await embeddings.embedQuery(query);
+
+  // ── Step 2: Query Pinecone ──────────────────────────────────────────────
+  // CRITICAL: namespace('user-${userId}') — never query without namespace
+  const index     = getPineconeIndex();
+  const namespace = index.namespace(`user-${userId}`);
+
+  const queryOptions = {
+    vector:          queryVector,
+    topK:            topK,
+    includeMetadata: true
+  };
+
+  // Optional: filter to specific documents if documentIds provided
+  if (documentIds && documentIds.length > 0) {
+    queryOptions.filter = {
+      documentId: { $in: documentIds }
+    };
+  }
+
+  const queryResult = await namespace.query(queryOptions);
+
+  // ── Step 3: Format context with source citations ────────────────────────
+  const matches = queryResult.matches || [];
+
+  if (matches.length === 0) {
+    return {
+      answer:    'No relevant information found in your uploaded documents for this query.',
+      sources:   [],
+      latencyMs: Date.now() - startTime
+    };
+  }
+
+  // Build source objects and formatted context
+  const sources = [];
+  const contextParts = [];
+
+  for (const match of matches) {
+    const meta = match.metadata || {};
+    const source = {
+      documentId: meta.documentId || null,
+      fileName:   meta.fileName   || 'Unknown',
+      pageNumber: meta.pageNumber || null,
+      excerpt:    (meta.text || '').slice(0, 300)
+    };
+    sources.push(source);
+
+    // Format each chunk with citation header for the LLM
+    const pageInfo = meta.pageNumber ? `, Page ${meta.pageNumber}` : '';
+    contextParts.push(
+      `[Source: ${meta.fileName || 'Unknown'}${pageInfo}]\n${meta.text || ''}`
+    );
+  }
+
+  const formattedContext = contextParts.join('\n\n---\n\n');
+
+  // ── Step 4: Pass to Gemini LLM ──────────────────────────────────────────
+  const systemPrompt = `You are a financial research assistant. Answer the user's question based ONLY on the provided document excerpts. Always cite your sources using inline citations in the format [FileName, Page X]. If the documents do not contain relevant information, say so clearly. Be concise and factual.`;
+
+  const userPrompt = `Document Context:\n${formattedContext}\n\n---\n\nUser Question: ${query}`;
+
+  const response = await llm.invoke([
+    { role: 'system', content: systemPrompt },
+    { role: 'human',  content: userPrompt }
+  ]);
+
+  const answer = response.content || 'Unable to generate an answer.';
+
+  // ── Step 5: Return result ───────────────────────────────────────────────
+  return {
+    answer,
+    sources,
+    latencyMs: Date.now() - startTime
+  };
 }

@@ -5,7 +5,8 @@ import {
   uploadPDF,
   listDocuments,
   getDocument,
-  deleteDocument
+  deleteDocument,
+  queryDocuments
 } from '../controllers/ragController.js';
 
 const router = Router();
@@ -41,5 +42,9 @@ router.get('/documents/:id', getDocument);
 // DELETE /api/rag/documents/:id — API Spec §DELETE /api/rag/documents/:id (Day 10)
 // Delete document from MongoDB AND cascade-delete vectors from Pinecone
 router.delete('/documents/:id', deleteDocument);
+
+// POST /api/rag/query — API Spec §POST /api/rag/query (Day 11)
+// RAG query: embed → Pinecone search → Gemini answer → return with citations
+router.post('/query', queryDocuments);
 
 export default router;

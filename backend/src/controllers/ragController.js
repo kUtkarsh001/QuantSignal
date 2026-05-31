@@ -1,5 +1,5 @@
 import KbDocument from '../models/KbDocument.js';
-import { ingestPDF } from '../services/ragService.js';
+import { ingestPDF, queryKnowledgeBase } from '../services/ragService.js';
 import { getPineconeIndex } from '../config/pinecone.js';
 
 /**
@@ -204,6 +204,81 @@ export async function deleteDocument(req, res, next) {
       documentId: doc._id
     });
   } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * queryDocuments — POST /api/rag/query
+ * API Spec §POST /api/rag/query
+ * Architecture §5.4
+ *
+ * Accepts a natural-language query, embeds it, searches Pinecone,
+ * passes retrieved context to Gemini, and returns the answer with
+ * source citations.
+ *
+ * Request body: { query: string (min 5), topK?: number (1-10), documentIds?: string[] }
+ * Response:     { success, answer, sources[], latencyMs }
+ */
+export async function queryDocuments(req, res, next) {
+  try {
+    const { query, topK = 3, documentIds } = req.body;
+
+    // ── Validate query ──────────────────────────────────────────────────────
+    if (!query || typeof query !== 'string' || query.trim().length < 5) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'QUERY_TOO_SHORT', message: 'Query must be at least 5 characters.' }
+      });
+    }
+
+    // ── Validate topK ───────────────────────────────────────────────────────
+    const k = Math.min(Math.max(parseInt(topK, 10) || 3, 1), 10);
+
+    // ── Check user has at least one ready document ──────────────────────────
+    const readyCount = await KbDocument.countDocuments({
+      userId: req.user.id,
+      status: 'ready'
+    });
+
+    if (readyCount === 0) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code:    'NO_DOCUMENTS',
+          message: 'No documents with status "ready" found. Upload and process a PDF first.'
+        }
+      });
+    }
+
+    // ── Call RAG query pipeline ──────────────────────────────────────────────
+    const result = await queryKnowledgeBase(
+      query.trim(),
+      req.user.id,
+      k,
+      documentIds || null
+    );
+
+    res.status(200).json({
+      success:   true,
+      answer:    result.answer,
+      sources:   result.sources,
+      latencyMs: result.latencyMs
+    });
+  } catch (err) {
+    // Handle specific upstream errors
+    if (err.message?.includes('Pinecone')) {
+      return res.status(500).json({
+        success: false,
+        error: { code: 'PINECONE_ERROR', message: 'Vector database query failed.' }
+      });
+    }
+    if (err.status === 429 || err.message?.includes('quota')) {
+      return res.status(503).json({
+        success: false,
+        error: { code: 'LLM_UNAVAILABLE', message: 'AI service temporarily unavailable. Please try again later.' }
+      });
+    }
     next(err);
   }
 }

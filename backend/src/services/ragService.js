@@ -74,8 +74,8 @@ export async function ingestPDF(documentId, pdfBuffer, userId, fileName) {
 
     if (!fullText || fullText.trim().length === 0) {
       await KbDocument.findByIdAndUpdate(documentId, {
-        status: 'error',
-        error:  'PDF contains no extractable text (possibly scanned/image-only).'
+        status:       'error',
+        errorMessage: 'PDF contains no extractable text (possibly scanned/image-only).'
       });
       return;
     }
@@ -90,8 +90,8 @@ export async function ingestPDF(documentId, pdfBuffer, userId, fileName) {
 
     if (chunks.length === 0) {
       await KbDocument.findByIdAndUpdate(documentId, {
-        status: 'error',
-        error:  'Text splitting produced zero chunks.'
+        status:       'error',
+        errorMessage: 'Text splitting produced zero chunks.'
       });
       return;
     }
@@ -131,8 +131,9 @@ export async function ingestPDF(documentId, pdfBuffer, userId, fileName) {
 
     // ── Step 6: Mark as ready ───────────────────────────────────────────────
     await KbDocument.findByIdAndUpdate(documentId, {
-      status:     'ready',
-      chunkCount: chunks.length
+      status:            'ready',
+      chunkCount:        chunks.length,
+      pineconeNamespace: `user-${userId}`
     });
 
     console.log(`[RAG] Ingested "${fileName}": ${chunks.length} chunks → Pinecone namespace user-${userId}`);
@@ -141,8 +142,8 @@ export async function ingestPDF(documentId, pdfBuffer, userId, fileName) {
     // ── Step 7: Error handling ─────────────────────────────────────────────
     console.error(`[RAG] Ingestion failed for ${documentId}:`, err.message);
     await KbDocument.findByIdAndUpdate(documentId, {
-      status: 'error',
-      error:  err.message.slice(0, 500)
+      status:       'error',
+      errorMessage: err.message.slice(0, 500)
     }).catch(() => {}); // Don't throw if DB update also fails
   }
 }

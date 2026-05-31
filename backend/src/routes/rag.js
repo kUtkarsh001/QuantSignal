@@ -1,7 +1,12 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { authMiddleware } from '../middleware/auth.js';
-import { uploadPDF } from '../controllers/ragController.js';
+import {
+  uploadPDF,
+  listDocuments,
+  getDocument,
+  deleteDocument
+} from '../controllers/ragController.js';
 
 const router = Router();
 
@@ -24,5 +29,17 @@ const upload = multer({
 // POST /api/rag/upload — API Spec §POST /api/rag/upload
 // multer middleware extracts the file from multipart form data
 router.post('/upload', upload.single('file'), uploadPDF);
+
+// GET  /api/rag/documents     — API Spec §GET /api/rag/documents (Day 10)
+// List all documents for the authenticated user
+router.get('/documents', listDocuments);
+
+// GET  /api/rag/documents/:id — API Spec §GET /api/rag/documents/:id (Day 10)
+// Poll a single document's ingestion status
+router.get('/documents/:id', getDocument);
+
+// DELETE /api/rag/documents/:id — API Spec §DELETE /api/rag/documents/:id (Day 10)
+// Delete document from MongoDB AND cascade-delete vectors from Pinecone
+router.delete('/documents/:id', deleteDocument);
 
 export default router;

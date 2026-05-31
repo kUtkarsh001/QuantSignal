@@ -1,5 +1,6 @@
 import KbDocument from '../models/KbDocument.js';
 import { ingestPDF } from '../services/ragService.js';
+import { getPineconeIndex } from '../config/pinecone.js';
 
 /**
  * uploadPDF — POST /api/rag/upload
@@ -27,6 +28,15 @@ export async function uploadPDF(req, res, next) {
       });
     }
 
+    // ── Check document limit (max 5 per user — PRD §FEAT-02) ────────────────
+    const docCount = await KbDocument.countDocuments({ userId: req.user.id });
+    if (docCount >= 5) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'DOC_LIMIT_REACHED', message: 'Maximum 5 documents per user. Delete one before uploading.' }
+      });
+    }
+
     // ── Step 1: Create KbDocument record (status: uploading) ─────────────────
     const doc = await KbDocument.create({
       userId:   req.user.id,
@@ -48,6 +58,150 @@ export async function uploadPDF(req, res, next) {
         status:     doc.status,
         message:    'PDF upload accepted. Poll GET /api/rag/documents/:id for status.'
       }
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * listDocuments — GET /api/rag/documents
+ * API Spec §GET /api/rag/documents
+ *
+ * Returns all documents uploaded by the authenticated user.
+ * Sorted by uploadedAt descending (newest first).
+ * Includes status, chunkCount, and namespace for each document.
+ */
+export async function listDocuments(req, res, next) {
+  try {
+    const documents = await KbDocument.find({ userId: req.user.id })
+      .sort({ uploadedAt: -1 })
+      .lean();
+
+    const formatted = documents.map(doc => ({
+      id:                doc._id,
+      fileName:          doc.fileName,
+      fileSize:          doc.fileSize,
+      uploadedAt:        doc.uploadedAt,
+      status:            doc.status,
+      chunkCount:        doc.chunkCount,
+      pineconeNamespace: doc.pineconeNamespace,
+      errorMessage:      doc.errorMessage
+    }));
+
+    res.status(200).json({
+      success:   true,
+      documents: formatted,
+      count:     formatted.length,
+      limit:     5
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * getDocument — GET /api/rag/documents/:id
+ * API Spec §GET /api/rag/documents/:id
+ *
+ * Returns a single document by ID. Verifies ownership.
+ * Used by the frontend for polling ingestion status (every 2s).
+ */
+export async function getDocument(req, res, next) {
+  try {
+    const doc = await KbDocument.findOne({
+      _id:    req.params.id,
+      userId: req.user.id
+    }).lean();
+
+    if (!doc) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Document not found or you do not own it.' }
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      document: {
+        id:           doc._id,
+        fileName:     doc.fileName,
+        fileSize:     doc.fileSize,
+        uploadedAt:   doc.uploadedAt,
+        status:       doc.status,
+        chunkCount:   doc.chunkCount,
+        errorMessage: doc.errorMessage
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * deleteDocument — DELETE /api/rag/documents/:id
+ * API Spec §DELETE /api/rag/documents/:id
+ * DB Schema §Cascade Delete
+ *
+ * Deletes a document from MongoDB AND its vectors from Pinecone.
+ * CRITICAL: Must use namespace('user-${userId}') — never operate on default namespace.
+ * Both deletions must succeed; partial delete is not acceptable.
+ */
+export async function deleteDocument(req, res, next) {
+  try {
+    // ── Step 1: Find document and verify ownership ──────────────────────────
+    const doc = await KbDocument.findOne({
+      _id:    req.params.id,
+      userId: req.user.id
+    });
+
+    if (!doc) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Document not found or you do not own it.' }
+      });
+    }
+
+    // ── Step 2: Delete vectors from Pinecone ────────────────────────────────
+    // CRITICAL: namespace('user-${userId}') — cascade delete DB Schema §Collection 3
+    // Only attempt Pinecone cleanup if vectors were actually upserted (chunkCount > 0).
+    // Pinecone Serverless does NOT support filter-based deleteMany — we delete by
+    // generated vector IDs (pattern from ragService: ${documentId}-chunk-${i}).
+    if (doc.chunkCount > 0) {
+      try {
+        const index     = getPineconeIndex();
+        const namespace = index.namespace(`user-${req.user.id}`);
+
+        // Generate vector IDs matching the pattern in ragService.js
+        const vectorIds = Array.from(
+          { length: doc.chunkCount },
+          (_, i) => `${doc._id.toString()}-chunk-${i}`
+        );
+
+        // Delete vectors by ID array (Serverless-compatible)
+        await namespace.deleteMany(vectorIds);
+
+        console.log(`[RAG] Deleted ${doc.chunkCount} Pinecone vectors for doc ${doc._id} from namespace user-${req.user.id}`);
+      } catch (pineconeErr) {
+        console.error(`[RAG] Pinecone delete failed for doc ${doc._id}:`, pineconeErr.message);
+        return res.status(500).json({
+          success: false,
+          error: { code: 'PINECONE_ERROR', message: 'Failed to delete vectors from Pinecone. Document not removed.' }
+        });
+      }
+    } else {
+      console.log(`[RAG] Skipping Pinecone cleanup for doc ${doc._id} (chunkCount=0, no vectors to delete)`);
+    }
+
+    // ── Step 3: Delete MongoDB record ───────────────────────────────────────
+    await KbDocument.findByIdAndDelete(doc._id);
+
+    console.log(`[RAG] Deleted document ${doc._id} ("${doc.fileName}") from MongoDB`);
+
+    res.status(200).json({
+      success:    true,
+      message:    'Document and associated vectors deleted successfully.',
+      documentId: doc._id
     });
   } catch (err) {
     next(err);

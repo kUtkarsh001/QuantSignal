@@ -23,13 +23,25 @@ import { getPineconeIndex } from '../config/pinecone.js';
 
 // ── NVIDIA Embeddings — nv-embedqa-e5-v5 (1024 dims) ────────────────────────
 // Using OpenAI API client pointing to NVIDIA NIM (OpenAI-compatible)
-const embeddings = new OpenAIEmbeddings({
+// We intercept fetch to inject the required "input_type" parameter
+const createEmbeddings = (inputType) => new OpenAIEmbeddings({
   openAIApiKey: process.env.NVIDIA_API_KEY,
   configuration: {
     baseURL: "https://integrate.api.nvidia.com/v1",
+    fetch: async (url, options) => {
+      if (options.body) {
+        const body = JSON.parse(options.body);
+        body.input_type = inputType;
+        options.body = JSON.stringify(body);
+      }
+      return fetch(url, options);
+    }
   },
   modelName: "nvidia/nv-embedqa-e5-v5"
 });
+
+const documentEmbeddings = createEmbeddings("passage");
+const queryEmbeddings    = createEmbeddings("query");
 
 // ── Text Splitter — 1000 chars per chunk, 200 char overlap ───────────────────
 const textSplitter = new RecursiveCharacterTextSplitter({
@@ -107,7 +119,8 @@ export async function ingestPDF(documentId, pdfBuffer, userId, fileName) {
     const chunkTexts = chunks.map(c => c.pageContent);
 
     // Batch embeddings — OpenAI handles batching internally
-    const vectors = await embeddings.embedDocuments(chunkTexts);
+    const vectors = await documentEmbeddings.embedDocuments(chunkTexts);
+    console.log('[DEBUG] Vectors length:', vectors?.length, 'First vector is array?', Array.isArray(vectors?.[0]));
 
     // ── Step 5: Upsert to Pinecone ──────────────────────────────────────────
     // CRITICAL: namespace('user-${userId}') — never upsert without namespace
@@ -130,8 +143,11 @@ export async function ingestPDF(documentId, pdfBuffer, userId, fileName) {
     // Upsert in batches of 100 (Pinecone limit)
     const BATCH_SIZE = 100;
     for (let i = 0; i < pineconeRecords.length; i += BATCH_SIZE) {
-      const batch = pineconeRecords.slice(i, i + BATCH_SIZE);
-      await namespace.upsert(batch);
+      const records = pineconeRecords.slice(i, i + BATCH_SIZE);
+      if (records.length > 0) {
+        // Pinecone v7 SDK requires { records } object, not an array
+        await namespace.upsert({ records });
+      }
     }
 
     // ── Step 6: Mark as ready ───────────────────────────────────────────────
@@ -165,7 +181,7 @@ function estimatePageNumber(chunkIndex, totalChunks, totalPages) {
 // ── Gemini LLM — gemini-1.5-flash for RAG Q&A ───────────────────────────────
 const llm = new ChatGoogleGenerativeAI({
   apiKey:      process.env.GEMINI_API_KEY,
-  model:       'gemini-1.5-flash',
+  model:       'gemini-2.5-flash',
   temperature: 0.3,       // Low temp for factual answers
   maxOutputTokens: 1024
 });
@@ -193,7 +209,7 @@ export async function queryKnowledgeBase(query, userId, topK = 3, documentIds = 
   const startTime = Date.now();
 
   // ── Step 1: Embed the user query ────────────────────────────────────────
-  const queryVector = await embeddings.embedQuery(query);
+  const queryVector = await queryEmbeddings.embedQuery(query);
 
   // ── Step 2: Query Pinecone ──────────────────────────────────────────────
   // CRITICAL: namespace('user-${userId}') — never query without namespace

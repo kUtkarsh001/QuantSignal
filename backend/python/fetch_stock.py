@@ -22,6 +22,7 @@ Exit codes:
 import yfinance as yf
 import json
 import sys
+import math
 
 # ── Read command-line arguments ───────────────────────────────────────────────
 symbol   = sys.argv[1]
@@ -37,9 +38,13 @@ try:
         print(json.dumps({ 'error': f'Symbol {symbol} not found or returned no data.' }))
         sys.exit(1)
 
-    # Build candles array — one object per row
+    # Build candles array — skip rows where OHLC is NaN (today's partial/in-progress candle)
+    # Python's json.dumps outputs NaN as a literal `NaN` which is invalid JSON.
     candles = []
     for ts, row in hist.iterrows():
+        # Skip any row with NaN OHLC — these are partial/in-progress trading day rows
+        if any(math.isnan(row[col]) for col in ['Open', 'High', 'Low', 'Close']):
+            continue
         candles.append({
             'timestamp': ts.isoformat(),
             'open':      round(float(row['Open']),   2),

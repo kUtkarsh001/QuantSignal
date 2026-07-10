@@ -1,4 +1,13 @@
+import dns from 'dns';
 import mongoose from 'mongoose';
+
+// ── DNS override — fixes Airtel ISP DNS interception ─────────────────────────
+// Airtel (both WiFi and mobile hotspot) intercepts DNS queries at the OS level,
+// which causes the MongoDB Atlas SRV record lookup to return NXDOMAIN even when
+// specifying 8.8.8.8 via PowerShell. Setting servers on Node.js's own dns
+// module bypasses this OS-level interception entirely.
+// Safe on all networks — falls back automatically if Google DNS is unreachable.
+dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
 
 /**
  * connectDB — establishes a Mongoose connection to MongoDB Atlas.

@@ -9,6 +9,7 @@ import authRoutes   from './routes/auth.js';
 import marketRoutes from './routes/market.js';
 import userRoutes   from './routes/user.js';
 import ragRoutes    from './routes/rag.js';
+import agentRoutes  from './routes/agent.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -40,7 +41,7 @@ app.use('/api/auth',   authRoutes);
 app.use('/api/market', marketRoutes);
 app.use('/api/user',   userRoutes);
 app.use('/api/rag',    ragRoutes);
-// /api/agent will be mounted on Day 13 — analyzeLimiter applied there
+app.use('/api/agent',  agentRoutes);  // Day 13 — auth + rate limit inside routes/agent.js
 
 // ── Health check — no auth required ──────────────────────────────────────────
 app.get('/health', (req, res) => {

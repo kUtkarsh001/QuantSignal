@@ -1,6 +1,13 @@
 import { spawn } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import {
+  computeSMA,
+  computeEMA,
+  computeRSI,
+  computeMACD,
+  computeBollinger
+} from '../dsp/filters.js';
 
 // ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -69,4 +76,39 @@ export function fetchStockData(symbol, period = '1mo', interval = '1d') {
       reject(new Error(`Failed to spawn Python process: ${err.message}`));
     });
   });
+}
+
+/**
+ * getEnrichedData — single-call helper for agentController.js
+ *
+ * Fetches 1-month daily OHLCV data then runs all DSP filters.
+ * Returns a clean object with candles, sector, and all indicator arrays
+ * so agentController can extract the latest values for Agent A's prompt.
+ *
+ * @param {string} symbol  Yahoo Finance ticker (e.g. 'RELIANCE.NS', 'AAPL')
+ * @returns {Promise<{candles, sector, indicators}>}
+ */
+export async function getEnrichedData(symbol) {
+  const data   = await fetchStockData(symbol, '1mo', '1d');
+  const closes = data.candles.map(c => c.close);
+
+  const sma20     = computeSMA(closes, 20);
+  const ema12     = computeEMA(closes, 12);
+  const ema26     = computeEMA(closes, 26);
+  const rsi14     = computeRSI(closes, 14);
+  const macd      = computeMACD(closes);
+  const bollinger = computeBollinger(closes, 20);
+
+  return {
+    candles: data.candles,
+    sector:  data.sector ?? 'Unknown',
+    indicators: {
+      sma20,
+      ema12,
+      ema26,
+      rsi14,
+      macdHistogram: macd.histogram,
+      bollinger
+    }
+  };
 }

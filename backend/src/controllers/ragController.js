@@ -179,7 +179,7 @@ export async function deleteDocument(req, res, next) {
         );
 
         // Delete vectors by ID array (Serverless-compatible)
-        await namespace.deleteMany(vectorIds);
+        await namespace.deleteMany({ ids: vectorIds });
 
         console.log(`[RAG] Deleted ${doc.chunkCount} Pinecone vectors for doc ${doc._id} from namespace user-${req.user.id}`);
       } catch (pineconeErr) {

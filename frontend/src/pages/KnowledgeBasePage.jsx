@@ -48,7 +48,7 @@ function StatusPill({ status }) {
 }
 
 // ── Document row with status polling ────────────────────────────────────────
-function DocRow({ doc: initialDoc, token, onDelete }) {
+function DocRow({ doc: initialDoc, token, onDelete, onStatusChange }) {
   const [doc, setDoc]     = useState(initialDoc);
   const [deleting, setDeleting] = useState(false);
   const intervalRef = useRef(null);
@@ -62,6 +62,7 @@ function DocRow({ doc: initialDoc, token, onDelete }) {
         const res = await ragService.getDocument(doc.id, token);
         const updated = res.document;
         setDoc(prev => ({ ...prev, ...updated }));
+        if (onStatusChange) onStatusChange(updated);
         if (updated.status === 'ready' || updated.status === 'error') {
           clearInterval(intervalRef.current);
         }
@@ -223,6 +224,10 @@ export default function KnowledgeBasePage() {
     setDocs(prev => prev.filter(d => d.id !== id));
   }
 
+  function handleStatusChange(updatedDoc) {
+    setDocs(prev => prev.map(d => d.id === updatedDoc.id ? { ...d, ...updatedDoc } : d));
+  }
+
   // RAG chat query
   async function handleQuery(e) {
     e.preventDefault();
@@ -336,6 +341,7 @@ export default function KnowledgeBasePage() {
                 doc={doc}
                 token={token}
                 onDelete={handleDeleteDoc}
+                onStatusChange={handleStatusChange}
               />
             ))}
           </div>

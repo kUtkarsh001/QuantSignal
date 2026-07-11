@@ -1,28 +1,37 @@
 /* Dashboard.module.css */
 
+/* ── Page layout ─────────────────────────────────────────────── */
 .page {
+  display:        flex;
+  flex-direction: column;
+  gap:            1rem;
+  padding-bottom: 2rem;
+  animation:      fadeInUp var(--t-slow) both;
+}
+
+/* ── Empty state ─────────────────────────────────────────────── */
+.emptyPage {
   min-height: calc(100vh - 64px);
   display:    flex;
   align-items:center;
   justify-content:center;
-  padding:    2rem;
 }
 
 .empty {
-  text-align: center;
-  display:    flex;
-  flex-direction:column;
-  align-items:center;
-  gap:        1rem;
-  max-width:  480px;
-  animation:  fadeInUp var(--t-slow) both;
+  text-align:     center;
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            1rem;
+  max-width:      480px;
+  animation:      fadeInUp var(--t-slow) both;
 }
 
 .emptyIcon {
-  font-size:  4rem;
-  line-height:1;
+  font-size:    4rem;
+  line-height:  1;
   margin-bottom:0.5rem;
-  filter:     drop-shadow(0 0 24px rgba(59,130,246,0.3));
+  filter:       drop-shadow(0 0 24px rgba(59,130,246,0.3));
 }
 
 .emptyTitle {
@@ -38,11 +47,11 @@
 }
 
 .emptySub code {
-  font-family: var(--font-mono);
-  font-size:   0.9em;
-  background:  var(--accent-muted);
-  color:       var(--accent-glow);
-  padding:     0.15em 0.5em;
+  font-family:  var(--font-mono);
+  font-size:    0.9em;
+  background:   var(--accent-muted);
+  color:        var(--accent-glow);
+  padding:      0.15em 0.5em;
   border-radius:4px;
 }
 
@@ -63,4 +72,162 @@
   font-family:   var(--font-mono);
   font-size:     0.8125rem;
   color:         var(--text-secondary);
+}
+
+/* ── Skeleton loader ─────────────────────────────────────────── */
+.skeleton {
+  display:        flex;
+  flex-direction: column;
+  gap:            1rem;
+  padding-top:    0.5rem;
+}
+
+.skeletonBar {
+  background:     linear-gradient(90deg, var(--bg-surface) 25%, var(--bg-raised) 50%, var(--bg-surface) 75%);
+  background-size:200% 100%;
+  animation:      shimmer 1.4s infinite;
+  border-radius:  var(--radius-md);
+}
+
+.skeletonTitle { height: 60px; width: 55%; }
+.skeletonChart { height: 380px; }
+.skeletonSmall { height: 140px; }
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ── Error state ─────────────────────────────────────────────── */
+.errorState {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  justify-content:center;
+  gap:            0.75rem;
+  min-height:     300px;
+  text-align:     center;
+  color:          var(--danger);
+}
+
+.errorIcon { font-size: 2.5rem; }
+
+.errorState h3 { color: var(--danger); }
+.errorState p  { color: var(--text-muted); font-size: 0.9rem; }
+
+/* ── Company header ──────────────────────────────────────────── */
+.header {
+  display:         flex;
+  align-items:     flex-start;
+  justify-content: space-between;
+  gap:             1.5rem;
+  flex-wrap:       wrap;
+}
+
+.headerLeft {
+  display:        flex;
+  flex-direction: column;
+  gap:            0.375rem;
+}
+
+.symbolBadge {
+  display:    flex;
+  align-items:center;
+  gap:        0.75rem;
+  flex-wrap:  wrap;
+}
+
+.symbol {
+  font-family:   var(--font-mono);
+  font-size:     1.5rem;
+  font-weight:   800;
+  color:         var(--text-primary);
+  letter-spacing:0.02em;
+}
+
+.sectorTag {
+  padding:       0.2rem 0.75rem;
+  border:        1px solid;
+  border-radius: 999px;
+  font-size:     0.7rem;
+  font-weight:   700;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+}
+
+.companyName {
+  font-size:  0.95rem;
+  color:      var(--text-secondary);
+  font-weight:500;
+}
+
+/* Price block */
+.priceBlock {
+  display:        flex;
+  flex-direction: column;
+  align-items:    flex-end;
+  gap:            0.125rem;
+}
+
+.price {
+  font-family:   var(--font-mono);
+  font-size:     2rem;
+  font-weight:   800;
+  color:         var(--text-primary);
+  letter-spacing:-0.01em;
+}
+
+.change {
+  font-size:   1rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+/* ── Stats row ───────────────────────────────────────────────── */
+.statsRow {
+  display:        flex;
+  gap:            1rem;
+  flex-wrap:      wrap;
+}
+
+.stat {
+  display:        flex;
+  flex-direction: column;
+  gap:            0.2rem;
+  padding:        0.625rem 1rem;
+  background:     var(--bg-surface);
+  border:         1px solid var(--border);
+  border-radius:  var(--radius-md);
+  flex:           1 1 80px;
+}
+
+.statLabel {
+  font-size:     0.7rem;
+  font-weight:   600;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  color:         var(--text-muted);
+}
+
+.statValue {
+  font-family:  var(--font-mono);
+  font-size:    1rem;
+  font-weight:  700;
+  color:        var(--text-primary);
+}
+
+/* ── Chart card ──────────────────────────────────────────────── */
+.chartCard {
+  background:    var(--bg-surface);
+  border:        1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding:       0.5rem 1rem 0.75rem;
+  overflow:      hidden;
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .price { font-size: 1.5rem; }
+  .statsRow { gap: 0.5rem; }
+  .stat { padding: 0.5rem 0.75rem; }
 }

@@ -1,0 +1,91 @@
+/* IndicatorPanel.module.css */
+
+.wrapper {
+  display:        flex;
+  flex-direction: column;
+  gap:            0.75rem;
+}
+
+.panel {
+  background:    var(--bg-surface);
+  border:        1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding:       0.875rem 1rem 0.5rem;
+  overflow:      hidden;
+}
+
+.panelHeader {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  margin-bottom:   0.5rem;
+  gap:             1rem;
+  flex-wrap:       wrap;
+}
+
+.panelTitle {
+  font-size:     0.75rem;
+  font-weight:   700;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:         var(--text-secondary);
+}
+
+.panelHint {
+  display:     flex;
+  align-items: center;
+  gap:         0.35rem;
+  font-size:   0.7rem;
+  color:       var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.dot, .legendDot {
+  display:       inline-block;
+  width:         7px;
+  height:        7px;
+  border-radius: 50%;
+  flex-shrink:   0;
+}
+
+.legendDot {
+  border-radius: 2px;
+  height:        3px;
+  width:         12px;
+  vertical-align:middle;
+}
+
+/* Tooltip */
+.tooltip {
+  background:    rgba(13,21,38,0.95);
+  border:        1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding:       0.625rem 0.875rem;
+  font-size:     0.8rem;
+  min-width:     130px;
+  box-shadow:    var(--shadow-md);
+}
+
+.tooltipDate {
+  font-family:   var(--font-mono);
+  font-size:     0.7rem;
+  color:         var(--text-muted);
+  margin-bottom: 0.375rem;
+}
+
+.tooltipRow {
+  display:         flex;
+  justify-content: space-between;
+  gap:             1.25rem;
+  font-family:     var(--font-mono);
+  color:           var(--text-secondary);
+  line-height:     1.7;
+}
+
+.tooltipZone {
+  font-size:   0.7rem;
+  font-weight: 600;
+  margin-top:  0.25rem;
+  letter-spacing:0.04em;
+  text-transform:uppercase;
+}

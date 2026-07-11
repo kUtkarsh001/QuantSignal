@@ -268,3 +268,32 @@ export async function getHistory(req, res, next) {
     next(err);
   }
 }
+
+/**
+ * getAnalysisById — GET /api/agent/history/:id
+ * Day 14 — returns a single full analysis record.
+ * Used by frontend to render a detailed view of a past analysis.
+ *
+ * Security: scoped to the requesting user — cannot read another user's logs.
+ */
+export async function getAnalysisById(req, res, next) {
+  try {
+    const userId = req.user.id;
+    const { id }  = req.params;
+
+    const log = await AnalysisLog.findOne({ _id: id, userId });
+
+    if (!log) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Analysis record not found.' }
+      });
+    }
+
+    res.status(200).json({ success: true, data: log });
+
+  } catch (err) {
+    console.error('[agentController.getAnalysisById] Error:', err.message);
+    next(err);
+  }
+}

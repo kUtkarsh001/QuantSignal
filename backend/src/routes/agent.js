@@ -10,7 +10,7 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { authMiddleware } from '../middleware/auth.js';
-import { analyze, getHistory } from '../controllers/agentController.js';
+import { analyze, getHistory, getAnalysisById } from '../controllers/agentController.js';
 
 const router = express.Router();
 
@@ -42,5 +42,9 @@ router.post('/analyze', authMiddleware, analyzeLimiter, analyze);
 // Paginated analysis history for the authenticated user (Day 14).
 // Query: ?page=1&limit=10&symbol=RELIANCE.NS
 router.get('/history', authMiddleware, getHistory);
+
+// ── GET /api/agent/history/:id ────────────────────────────────────────────────
+// Single full analysis record for detailed view (Day 14).
+router.get('/history/:id', authMiddleware, getAnalysisById);
 
 export default router;

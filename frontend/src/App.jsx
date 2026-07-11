@@ -20,10 +20,11 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth }   from './contexts/AuthContext.jsx';
 import { StockProvider }           from './contexts/StockContext.jsx';
 
-import Navbar       from './components/Navbar.jsx';
-import LoginPage    from './pages/LoginPage.jsx';
-import Dashboard    from './pages/Dashboard.jsx';
-import HistoryPage  from './pages/HistoryPage.jsx';
+import Navbar              from './components/Navbar.jsx';
+import LoginPage           from './pages/LoginPage.jsx';
+import Dashboard           from './pages/Dashboard.jsx';
+import HistoryPage         from './pages/HistoryPage.jsx';
+import KnowledgeBasePage   from './pages/KnowledgeBasePage.jsx';
 
 // ── Route guards ─────────────────────────────────────────────────────────────
 
@@ -87,16 +88,13 @@ function AppRoutes() {
         }
       />
 
-      {/* Knowledge Base — protected (Day 18 placeholder) */}
+      {/* Knowledge Base — protected */}
       <Route
         path="/knowledge-base"
         element={
           <ProtectedRoute>
             <AppLayout onSearch={setSearchSymbol}>
-              <div className="main-content" style={{ textAlign: 'center', paddingTop: '4rem', color: 'var(--text-secondary)' }}>
-                <h2>Knowledge Base</h2>
-                <p>Coming in Day 18 — PDF upload + RAG chat.</p>
-              </div>
+              <KnowledgeBasePage />
             </AppLayout>
           </ProtectedRoute>
         }

@@ -1,0 +1,514 @@
+/* KnowledgeBasePage.module.css */
+
+/* ── Page ──────────────────────────────────────────────────────── */
+.page {
+  max-width:      1200px;
+  margin:         0 auto;
+  padding:        2rem 1.5rem 4rem;
+  display:        flex;
+  flex-direction: column;
+  gap:            2rem;
+  animation:      fadeInUp var(--t-slow) both;
+}
+
+/* ── Page header ─────────────────────────────────────────────── */
+.pageHeader {
+  display:         flex;
+  align-items:     flex-end;
+  justify-content: space-between;
+  gap:             1rem;
+  flex-wrap:       wrap;
+}
+
+.title {
+  font-size:     1.75rem;
+  font-weight:   800;
+  color:         var(--text-primary);
+  margin:        0 0 0.25rem;
+  letter-spacing:-0.02em;
+}
+
+.sub {
+  font-size:  0.875rem;
+  color:      var(--text-muted);
+  margin:     0;
+}
+
+.docCount {
+  display:     flex;
+  align-items: baseline;
+  gap:         0.25rem;
+}
+
+.docCountNum {
+  font-family:   var(--font-mono);
+  font-size:     2rem;
+  font-weight:   800;
+  color:         var(--text-primary);
+}
+
+.docCountLabel {
+  font-size:  0.9rem;
+  color:      var(--text-muted);
+}
+
+/* ── 2-col layout ────────────────────────────────────────────── */
+.layout {
+  display:               grid;
+  grid-template-columns: 360px 1fr;
+  gap:                   1.5rem;
+  align-items:           start;
+}
+
+/* ── Left column ────────────────────────────────────────────── */
+.leftCol {
+  display:        flex;
+  flex-direction: column;
+  gap:            1rem;
+}
+
+/* ── Drop zone ──────────────────────────────────────────────── */
+.dropzone {
+  border:        2px dashed var(--border);
+  border-radius: var(--radius-lg);
+  padding:       2rem 1.5rem;
+  display:       flex;
+  flex-direction:column;
+  align-items:   center;
+  gap:           0.5rem;
+  cursor:        pointer;
+  transition:    all var(--t-fast);
+  background:    var(--bg-surface);
+  text-align:    center;
+}
+
+.dropzone:hover {
+  border-color: rgba(59,130,246,0.5);
+  background:   rgba(59,130,246,0.04);
+}
+
+.dropzoneActive {
+  border-color: #3b82f6;
+  background:   rgba(59,130,246,0.08);
+  transform:    scale(1.01);
+}
+
+.dropzoneUploading {
+  cursor:       not-allowed;
+  opacity:      0.8;
+  border-color: rgba(245,158,11,0.4);
+  background:   rgba(245,158,11,0.05);
+}
+
+.fileInput { display: none; }
+
+.dropzoneIcon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.dropzoneText {
+  font-size:   0.95rem;
+  font-weight: 600;
+  color:       var(--text-primary);
+}
+
+.dropzoneSub {
+  font-size: 0.775rem;
+  color:     var(--text-muted);
+}
+
+/* ── Error banner ────────────────────────────────────────────── */
+.errorBanner {
+  padding:       0.625rem 1rem;
+  background:    rgba(239,68,68,0.1);
+  border:        1px solid rgba(239,68,68,0.25);
+  border-radius: var(--radius-md);
+  color:         #fca5a5;
+  font-size:     0.825rem;
+}
+
+/* ── Document list ───────────────────────────────────────────── */
+.docList {
+  background:    var(--bg-surface);
+  border:        1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow:      hidden;
+}
+
+.docListHeader {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  padding:         0.75rem 1.25rem;
+  border-bottom:   1px solid var(--border);
+  font-size:       0.75rem;
+  font-weight:     700;
+  text-transform:  uppercase;
+  letter-spacing:  0.06em;
+  color:           var(--text-muted);
+  background:      rgba(255,255,255,0.02);
+}
+
+.readyBadge {
+  color:         #10b981;
+  font-weight:   700;
+  font-size:     0.7rem;
+}
+
+.docLoading, .docEmpty {
+  padding:    1.5rem 1.25rem;
+  color:      var(--text-muted);
+  font-size:  0.875rem;
+  text-align: center;
+}
+
+/* ── Document row ────────────────────────────────────────────── */
+.docRow {
+  display:       flex;
+  align-items:   center;
+  gap:           0.75rem;
+  padding:       0.875rem 1.25rem;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  transition:    background var(--t-fast);
+}
+
+.docRow:last-child { border-bottom: none; }
+.docRow:hover      { background: rgba(255,255,255,0.02); }
+
+.docIcon { font-size: 1.25rem; flex-shrink: 0; }
+
+.docInfo {
+  flex:           1;
+  display:        flex;
+  flex-direction: column;
+  gap:            0.125rem;
+  min-width:      0;
+}
+
+.docName {
+  font-size:     0.85rem;
+  font-weight:   600;
+  color:         var(--text-primary);
+  white-space:   nowrap;
+  overflow:      hidden;
+  text-overflow: ellipsis;
+}
+
+.docMeta {
+  font-size: 0.725rem;
+  color:     var(--text-muted);
+}
+
+/* ── Status pill ─────────────────────────────────────────────── */
+.pill {
+  display:        inline-flex;
+  align-items:    center;
+  gap:            0.375rem;
+  padding:        0.25rem 0.625rem;
+  border:         1px solid;
+  border-radius:  999px;
+  font-size:      0.7rem;
+  font-weight:    700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space:    nowrap;
+  flex-shrink:    0;
+}
+
+.pillPulse {
+  animation: pillGlow 1.5s ease-in-out infinite;
+}
+
+@keyframes pillGlow {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
+.dot {
+  width:         6px;
+  height:        6px;
+  border-radius: 50%;
+  animation:     dotPulse 1s ease-in-out infinite;
+}
+
+@keyframes dotPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%       { transform: scale(1.4); opacity: 0.7; }
+}
+
+/* ── Delete button ───────────────────────────────────────────── */
+.deleteBtn {
+  background:    rgba(239,68,68,0.08);
+  border:        1px solid rgba(239,68,68,0.2);
+  border-radius: var(--radius-sm);
+  color:         #ef4444;
+  font-size:     0.75rem;
+  width:         28px;
+  height:        28px;
+  cursor:        pointer;
+  display:       flex;
+  align-items:   center;
+  justify-content: center;
+  flex-shrink:   0;
+  transition:    all var(--t-fast);
+}
+
+.deleteBtn:hover:not(:disabled) {
+  background: rgba(239,68,68,0.18);
+}
+
+.deleteBtn:disabled {
+  opacity: 0.3;
+  cursor:  not-allowed;
+}
+
+/* ── Right column (chat) ─────────────────────────────────────── */
+.rightCol {
+  background:    var(--bg-surface);
+  border:        1px solid var(--border);
+  border-radius: var(--radius-lg);
+  display:       flex;
+  flex-direction:column;
+  height:        calc(100vh - 200px);
+  min-height:    520px;
+  overflow:      hidden;
+}
+
+.chatHeader {
+  padding:       1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  display:       flex;
+  align-items:   center;
+  justify-content: space-between;
+  flex-shrink:   0;
+  background:    rgba(255,255,255,0.02);
+}
+
+.chatTitle {
+  font-weight:   700;
+  font-size:     0.9rem;
+  color:         var(--text-primary);
+}
+
+.chatDisabledHint {
+  font-size:  0.75rem;
+  color:      var(--text-muted);
+  font-style: italic;
+}
+
+/* ── Chat messages ───────────────────────────────────────────── */
+.chatMessages {
+  flex:       1;
+  overflow-y: auto;
+  padding:    1.25rem;
+  display:    flex;
+  flex-direction: column;
+  gap:        1rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+
+.chatEmpty {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            0.75rem;
+  padding:        3rem 1rem;
+  color:          var(--text-muted);
+  text-align:     center;
+  font-size:      0.9rem;
+}
+
+.chatEmptyIcon {
+  font-size: 2.5rem;
+}
+
+.chatEmptyExamples {
+  display:        flex;
+  flex-direction: column;
+  gap:            0.375rem;
+  margin-top:     0.5rem;
+}
+
+.chatEmptyExamples span {
+  padding:       0.375rem 0.75rem;
+  background:    rgba(255,255,255,0.04);
+  border:        1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size:     0.8rem;
+  font-style:    italic;
+  cursor:        default;
+}
+
+/* ── Chat bubbles ────────────────────────────────────────────── */
+.bubble {
+  max-width:     80%;
+  display:       flex;
+  flex-direction:column;
+  gap:           0.5rem;
+  animation:     fadeInUp 0.25s ease;
+}
+
+.bubbleUser {
+  align-self:    flex-end;
+  align-items:   flex-end;
+}
+
+.bubbleAI {
+  align-self:    flex-start;
+  align-items:   flex-start;
+}
+
+.bubbleContent {
+  padding:       0.75rem 1rem;
+  border-radius: var(--radius-lg);
+  font-size:     0.875rem;
+  line-height:   1.65;
+}
+
+.bubbleUser .bubbleContent {
+  background:    linear-gradient(135deg, #3b82f6, #7c3aed);
+  color:         #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.bubbleAI .bubbleContent {
+  background:    rgba(255,255,255,0.05);
+  border:        1px solid var(--border);
+  color:         var(--text-secondary);
+  border-bottom-left-radius: 4px;
+}
+
+.sources {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       0.375rem;
+}
+
+.sourceTag {
+  padding:       0.2rem 0.625rem;
+  background:    rgba(96,165,250,0.1);
+  border:        1px solid rgba(96,165,250,0.25);
+  border-radius: 999px;
+  font-size:     0.7rem;
+  color:         #93c5fd;
+}
+
+.bubbleLatency {
+  font-size:   0.65rem;
+  color:       var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* ── Thinking dots ───────────────────────────────────────────── */
+.thinkingDots {
+  display:   flex;
+  gap:       0.375rem;
+  padding:   0.75rem 1rem;
+}
+
+.thinkingDots span {
+  width:         8px;
+  height:        8px;
+  background:    var(--text-muted);
+  border-radius: 50%;
+  animation:     bounce 1.2s ease-in-out infinite;
+}
+
+.thinkingDots span:nth-child(2) { animation-delay: 0.2s; }
+.thinkingDots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes bounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30%            { transform: translateY(-8px); }
+}
+
+/* ── Chat error ──────────────────────────────────────────────── */
+.chatError {
+  margin:        0 1.25rem 0.5rem;
+  padding:       0.5rem 1rem;
+  background:    rgba(239,68,68,0.1);
+  border:        1px solid rgba(239,68,68,0.2);
+  border-radius: var(--radius-md);
+  color:         #fca5a5;
+  font-size:     0.8rem;
+}
+
+/* ── Chat form ───────────────────────────────────────────────── */
+.chatForm {
+  display:     flex;
+  gap:         0.625rem;
+  padding:     1rem 1.25rem;
+  border-top:  1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.chatInput {
+  flex:          1;
+  padding:       0.65rem 1rem;
+  background:    rgba(255,255,255,0.05);
+  border:        1px solid var(--border);
+  border-radius: var(--radius-md);
+  color:         var(--text-primary);
+  font-family:   var(--font-sans);
+  font-size:     0.875rem;
+  outline:       none;
+  transition:    border-color var(--t-fast);
+}
+
+.chatInput:focus {
+  border-color: rgba(59,130,246,0.5);
+}
+
+.chatInput::placeholder { color: var(--text-muted); }
+.chatInput:disabled     { opacity: 0.5; cursor: not-allowed; }
+
+.sendBtn {
+  width:          44px;
+  height:         44px;
+  background:     linear-gradient(135deg, #3b82f6, #7c3aed);
+  border:         none;
+  border-radius:  var(--radius-md);
+  color:          #fff;
+  font-size:      1.1rem;
+  cursor:         pointer;
+  display:        flex;
+  align-items:    center;
+  justify-content:center;
+  flex-shrink:    0;
+  transition:     all var(--t-fast);
+}
+
+.sendBtn:hover:not(:disabled) {
+  transform:  translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59,130,246,0.35);
+}
+
+.sendBtn:disabled {
+  opacity: 0.4;
+  cursor:  not-allowed;
+}
+
+/* ── Spinner ─────────────────────────────────────────────────── */
+.spinner {
+  display:       inline-block;
+  width:         16px;
+  height:        16px;
+  border:        2px solid rgba(255,255,255,0.3);
+  border-top:    2px solid #fff;
+  border-radius: 50%;
+  animation:     spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .layout { grid-template-columns: 1fr; }
+  .rightCol { height: 480px; }
+}
+
+@media (max-width: 600px) {
+  .page { padding: 1rem; }
+}

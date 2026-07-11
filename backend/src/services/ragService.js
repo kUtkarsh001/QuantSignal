@@ -141,14 +141,26 @@ export async function ingestPDF(documentId, pdfBuffer, userId, fileName) {
     }));
 
     // Upsert in batches of 100 (Pinecone limit)
+    // Wrapped in a 3-minute timeout — if Pinecone is unreachable (ECONNRESET/network block)
+    // the document will surface as 'error' instead of hanging indefinitely.
     const BATCH_SIZE = 100;
-    for (let i = 0; i < pineconeRecords.length; i += BATCH_SIZE) {
-      const records = pineconeRecords.slice(i, i + BATCH_SIZE);
-      if (records.length > 0) {
-        // Pinecone v7 SDK requires { records } object, not an array
-        await namespace.upsert({ records });
+    const PINECONE_TIMEOUT_MS = 3 * 60 * 1000; // 3 minutes
+
+    const upsertAll = async () => {
+      for (let i = 0; i < pineconeRecords.length; i += BATCH_SIZE) {
+        const records = pineconeRecords.slice(i, i + BATCH_SIZE);
+        if (records.length > 0) {
+          await namespace.upsert({ records });
+        }
       }
-    }
+    };
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Pinecone upsert timed out after 3 minutes. Check your network connection — mobile data / hotspot is required.')), PINECONE_TIMEOUT_MS)
+    );
+
+    await Promise.race([upsertAll(), timeoutPromise]);
+
 
     // ── Step 6: Mark as ready ───────────────────────────────────────────────
     await KbDocument.findByIdAndUpdate(documentId, {

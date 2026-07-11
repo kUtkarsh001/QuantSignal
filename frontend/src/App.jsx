@@ -20,9 +20,10 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth }   from './contexts/AuthContext.jsx';
 import { StockProvider }           from './contexts/StockContext.jsx';
 
-import Navbar      from './components/Navbar.jsx';
-import LoginPage   from './pages/LoginPage.jsx';
-import Dashboard   from './pages/Dashboard.jsx';
+import Navbar       from './components/Navbar.jsx';
+import LoginPage    from './pages/LoginPage.jsx';
+import Dashboard    from './pages/Dashboard.jsx';
+import HistoryPage  from './pages/HistoryPage.jsx';
 
 // ── Route guards ─────────────────────────────────────────────────────────────
 
@@ -101,16 +102,13 @@ function AppRoutes() {
         }
       />
 
-      {/* History — protected (future) */}
+      {/* History — protected */}
       <Route
         path="/history"
         element={
           <ProtectedRoute>
             <AppLayout onSearch={setSearchSymbol}>
-              <div style={{ textAlign: 'center', paddingTop: '4rem', color: 'var(--text-secondary)' }}>
-                <h2>Analysis History</h2>
-                <p>Coming soon — review past analyses.</p>
-              </div>
+              <HistoryPage />
             </AppLayout>
           </ProtectedRoute>
         }

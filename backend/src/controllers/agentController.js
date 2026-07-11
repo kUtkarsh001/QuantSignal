@@ -251,7 +251,7 @@ export async function getHistory(req, res, next) {
         .sort({ timestamp: -1 })         // newest first
         .skip(skip)
         .limit(limit)
-        .select('symbol sector timestamp agentBAvailable agentC.confidenceScore agentC.agreement agentC.conflictFlag latencyMs'),
+        .select('symbol sector timestamp agentBAvailable agentA.trend agentC.confidenceScore agentC.agreement agentC.conflictFlag latencyMs'),
       AnalysisLog.countDocuments(filter)
     ]);
 

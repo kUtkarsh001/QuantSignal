@@ -126,10 +126,17 @@ export async function analyze(req, res, next) {
           { trend: 'neutral', strength: 25, reasoning: 'Agent A parse failed.' })
       : { trend: 'neutral', strength: 25, reasoning: 'Agent A invocation failed.' };
 
-    const agentBResult = resultB.status === 'fulfilled'
+    const agentBRaw = resultB.status === 'fulfilled'
       ? safeParseJSON(resultB.value.content,
           { sentiment: 'neutral', evidence: 'Agent B parse failed.', confidence: 0 })
-      : { sentiment: 'neutral', evidence: 'No documents.', confidence: 0 };
+      : { sentiment: 'neutral', evidence: 'No relevant documents found in knowledge base.', confidence: 0 };
+
+    // Guarantee evidence is always a non-empty string (AnalysisLog schema: required: true)
+    const agentBResult = {
+      sentiment:  agentBRaw.sentiment  || 'neutral',
+      evidence:   agentBRaw.evidence   || 'No relevant information found in your uploaded documents for this query.',
+      confidence: agentBRaw.confidence ?? 0,
+    };
 
     // agentBAvailable = false when confidence=0 (fallback) or invocation failed
     const agentBAvailable = resultB.status === 'fulfilled' && agentBResult.confidence > 0;

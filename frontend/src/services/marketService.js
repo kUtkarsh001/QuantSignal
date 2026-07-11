@@ -21,16 +21,16 @@ async function request(endpoint, token) {
 
 export const marketService = {
   /**
-   * fetchQuote — GET /api/market/quote?symbol=RELIANCE.NS
-   * Returns: { symbol, companyName, sector, currency, currentPrice, candles[] }
+   * fetchQuote — GET /api/market/quote?symbol=RELIANCE.NS&period=3mo
+   * 3mo gives ~62 candles — enough for EMA-26 + signal(9) = 35-candle MACD warmup.
    */
   fetchQuote: (symbol, token) =>
-    request(`/api/market/quote?symbol=${encodeURIComponent(symbol)}`, token),
+    request(`/api/market/quote?symbol=${encodeURIComponent(symbol)}&period=3mo`, token),
 
   /**
-   * fetchIndicators — GET /api/market/indicators?symbol=RELIANCE.NS
-   * Returns: { symbol, sma20[], ema12[], ema26[], rsi14[], macd{}, bollinger{} }
+   * fetchIndicators — GET /api/market/indicators?symbol=RELIANCE.NS&period=3mo
    */
   fetchIndicators: (symbol, token) =>
-    request(`/api/market/indicators?symbol=${encodeURIComponent(symbol)}`, token),
+    request(`/api/market/indicators?symbol=${encodeURIComponent(symbol)}&period=3mo`, token),
 };
+

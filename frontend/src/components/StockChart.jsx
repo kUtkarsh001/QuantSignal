@@ -2,54 +2,79 @@
  * StockChart.jsx — Candlestick chart + SMA/EMA overlay + Bollinger Bands
  * Architecture §2.1 — Day 16
  *
- * Uses Recharts ComposedChart with a custom candlestick Bar shape.
+ * Uses Recharts Customized component to draw candlesticks.
+ * Recharts Bar shapes DON'T get yAxis.scale, but Customized DOES get
+ * xAxisMap/yAxisMap — so we use Customized for full SVG control.
+ *
  * Supports SMA/EMA toggle. Bollinger bands rendered as a shaded Area.
  * connectNulls={false} so warm-up null values don't crash the chart.
  */
 
 import { useState, useMemo } from 'react';
 import {
-  ComposedChart, Bar, Line, Area,
+  ComposedChart, Line, Area,
   XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, ReferenceLine, Legend
+  ResponsiveContainer, Customized, Bar
 } from 'recharts';
 import styles from './StockChart.module.css';
 
-// ── Custom candlestick bar shape ─────────────────────────────────────────────
-// Receives props from Recharts including yAxis (with scale function).
-function CandlestickBar(props) {
-  const { x, y, width, payload, yAxis } = props;
-  if (!payload || !yAxis?.scale) return null;
+// ── Candlestick layer — rendered via Customized ──────────────────────────────
+// Receives xAxisMap + yAxisMap from Recharts internals.
+function CandlestickLayer({ formattedGraphicalItems, xAxisMap, yAxisMap }) {
+  if (!xAxisMap || !yAxisMap) return null;
 
-  const { open, high, low, close } = payload;
-  const scale   = yAxis.scale;
-  const highY   = scale(high);
-  const lowY    = scale(low);
-  const openY   = scale(open);
-  const closeY  = scale(close);
+  const xAxis = Object.values(xAxisMap)[0];
+  const yAxis = Object.values(yAxisMap)[0];
+  if (!xAxis?.scale || !yAxis?.scale) return null;
 
-  const isGreen    = close >= open;
-  const color      = isGreen ? '#10b981' : '#ef4444';
-  const bodyTop    = Math.min(openY, closeY);
-  const bodyHeight = Math.max(Math.abs(openY - closeY), 1);
-  const centerX    = x + width / 2;
-  const bodyW      = Math.max(width * 0.65, 3);
+  const xScale    = xAxis.scale;
+  const yScale    = yAxis.scale;
+  const bandwidth = xScale.bandwidth ? xScale.bandwidth() : 12;
+
+  // Get data from the first graphical item (our hidden reference bar)
+  const items = formattedGraphicalItems?.[0]?.props?.data;
+  if (!items?.length) return null;
 
   return (
-    <g>
-      {/* Wick */}
-      <line x1={centerX} y1={highY} x2={centerX} y2={lowY}
-        stroke={color} strokeWidth={1.5} opacity={0.9} />
-      {/* Body */}
-      <rect
-        x={centerX - bodyW / 2}
-        y={bodyTop}
-        width={bodyW}
-        height={bodyHeight}
-        fill={color}
-        fillOpacity={isGreen ? 0.75 : 0.9}
-        rx={1}
-      />
+    <g className="candlestick-layer">
+      {items.map((item, i) => {
+        const d = item?.payload;
+        if (!d || d.open == null || d.close == null || d.high == null || d.low == null) return null;
+
+        const x = xScale(d.date);
+        if (x == null || isNaN(x)) return null;
+
+        const cx       = x + bandwidth / 2;
+        const barW     = Math.max(bandwidth * 0.55, 3);
+        const openY    = yScale(d.open);
+        const closeY   = yScale(d.close);
+        const highY    = yScale(d.high);
+        const lowY     = yScale(d.low);
+        const isGreen  = d.close >= d.open;
+        const color    = isGreen ? '#10b981' : '#ef4444';
+        const bodyTop  = Math.min(openY, closeY);
+        const bodyH    = Math.max(Math.abs(openY - closeY), 1);
+
+        return (
+          <g key={i}>
+            {/* Wick */}
+            <line
+              x1={cx} y1={highY} x2={cx} y2={lowY}
+              stroke={color} strokeWidth={1.2} opacity={0.85}
+            />
+            {/* Body */}
+            <rect
+              x={cx - barW / 2}
+              y={bodyTop}
+              width={barW}
+              height={bodyH}
+              fill={color}
+              fillOpacity={isGreen ? 0.75 : 0.9}
+              rx={1}
+            />
+          </g>
+        );
+      })}
     </g>
   );
 }
@@ -229,13 +254,13 @@ export default function StockChart({ data }) {
             />
           )}
 
-          {/* Candlestick bars — dataKey="close" sets y-scale, custom shape renders full OHLC */}
-          <Bar
-            dataKey="close"
-            shape={<CandlestickBar />}
-            isAnimationActive={false}
-            legendType="none"
-          />
+          {/* Hidden reference bar — needed so Recharts creates
+              the XAxis band scale and passes formattedGraphicalItems
+              to the Customized component. Rendered invisible. */}
+          <Bar dataKey="close" fill="transparent" isAnimationActive={false} legendType="none" />
+
+          {/* Candlestick rendering via Customized — gets axis scales */}
+          <Customized component={CandlestickLayer} />
         </ComposedChart>
       </ResponsiveContainer>
 

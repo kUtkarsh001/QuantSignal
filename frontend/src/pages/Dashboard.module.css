@@ -1,0 +1,66 @@
+/* Dashboard.module.css */
+
+.page {
+  min-height: calc(100vh - 64px);
+  display:    flex;
+  align-items:center;
+  justify-content:center;
+  padding:    2rem;
+}
+
+.empty {
+  text-align: center;
+  display:    flex;
+  flex-direction:column;
+  align-items:center;
+  gap:        1rem;
+  max-width:  480px;
+  animation:  fadeInUp var(--t-slow) both;
+}
+
+.emptyIcon {
+  font-size:  4rem;
+  line-height:1;
+  margin-bottom:0.5rem;
+  filter:     drop-shadow(0 0 24px rgba(59,130,246,0.3));
+}
+
+.emptyTitle {
+  font-size:   1.75rem;
+  font-weight: 800;
+  color:       var(--text-primary);
+}
+
+.emptySub {
+  font-size:  1rem;
+  color:      var(--text-secondary);
+  line-height:1.6;
+}
+
+.emptySub code {
+  font-family: var(--font-mono);
+  font-size:   0.9em;
+  background:  var(--accent-muted);
+  color:       var(--accent-glow);
+  padding:     0.15em 0.5em;
+  border-radius:4px;
+}
+
+.shortcutHint {
+  display:    flex;
+  align-items:center;
+  gap:        0.5rem;
+  font-size:  0.875rem;
+  color:      var(--text-muted);
+  margin-top: 0.5rem;
+}
+
+.kbd {
+  padding:       0.25rem 0.625rem;
+  background:    var(--bg-raised);
+  border:        1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family:   var(--font-mono);
+  font-size:     0.8125rem;
+  color:         var(--text-secondary);
+}

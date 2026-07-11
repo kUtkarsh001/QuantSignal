@@ -1,22 +1,23 @@
 /**
  * Dashboard.jsx — Main analysis page
- * Architecture §2.1 — Day 16
+ * Architecture §2.1 — Day 16 + Day 17
  *
  * Flow:
  *   1. Receives searchSymbol from App.jsx (triggered by Navbar search)
  *   2. Fetches quote + indicators in parallel via marketService
  *   3. Merges into chartData array (one object per candle with all indicators)
  *   4. Renders: company header → StockChart → IndicatorPanel
- *
- * Day 17 will add: Analyze button → AgentResultPanel → ConfidenceGauge
+ *   5. "Run AI Analysis" button → POST /api/agent/analyze → AgentResultPanel
  */
 
-import { useEffect, useState, useMemo } from 'react';
-import { useAuth }       from '../contexts/AuthContext.jsx';
-import { marketService } from '../services/marketService.js';
-import StockChart        from '../components/StockChart.jsx';
-import IndicatorPanel    from '../components/IndicatorPanel.jsx';
-import styles            from './Dashboard.module.css';
+import { useEffect, useState, useMemo, useRef } from 'react';
+import { useAuth }         from '../contexts/AuthContext.jsx';
+import { marketService }   from '../services/marketService.js';
+import { agentService }    from '../services/agentService.js';
+import StockChart          from '../components/StockChart.jsx';
+import IndicatorPanel      from '../components/IndicatorPanel.jsx';
+import AgentResultPanel    from '../components/AgentResultPanel.jsx';
+import styles              from './Dashboard.module.css';
 
 // ── Sector colour map ─────────────────────────────────────────────────────────
 const SECTOR_COLORS = {
@@ -69,6 +70,14 @@ export default function Dashboard({ searchSymbol }) {
   const [loading,    setLoading]    = useState(false);
   const [error,      setError]      = useState('');
 
+  // Day 17 — Agent analysis state
+  const [agentResult,   setAgentResult]   = useState(null);
+  const [analyzing,     setAnalyzing]     = useState(false);
+  const [analyzeError,  setAnalyzeError]  = useState('');
+  const [elapsedSec,    setElapsedSec]    = useState(0);
+  const timerRef = useRef(null);
+  const resultRef = useRef(null);
+
   // Fetch when symbol changes
   useEffect(() => {
     if (!searchSymbol || !token) return;
@@ -79,6 +88,8 @@ export default function Dashboard({ searchSymbol }) {
       setError('');
       setQuoteData(null);
       setIndicators(null);
+      setAgentResult(null);    // reset agent result on new symbol
+      setAnalyzeError('');
 
       try {
         const [q, ind] = await Promise.all([
@@ -99,6 +110,32 @@ export default function Dashboard({ searchSymbol }) {
     load();
     return () => { cancelled = true; };
   }, [searchSymbol, token]);
+
+  // Day 17 — Run AI analysis
+  async function handleAnalyze() {
+    if (!searchSymbol || !token || analyzing) return;
+    setAnalyzing(true);
+    setAnalyzeError('');
+    setElapsedSec(0);
+
+    // Start elapsed-time counter
+    timerRef.current = setInterval(() => setElapsedSec(s => s + 1), 1000);
+
+    try {
+      const res = await agentService.analyzeStock(searchSymbol, token);
+      setAgentResult(res);
+      // Scroll to result
+      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
+    } catch (err) {
+      setAnalyzeError(err.message || 'Agent analysis failed.');
+    } finally {
+      setAnalyzing(false);
+      clearInterval(timerRef.current);
+    }
+  }
+
+  // Cleanup timer on unmount
+  useEffect(() => () => clearInterval(timerRef.current), []);
 
   // Merge candles + indicators into single chartData array
   const chartData = useMemo(() => {
@@ -242,6 +279,39 @@ export default function Dashboard({ searchSymbol }) {
       </div>
 
       <IndicatorPanel data={chartData} />
+
+      {/* Day 17 — AI Analysis trigger + results */}
+      <div className={styles.analyzeSection}>
+        <button
+          id="run-ai-analysis"
+          className={styles.analyzeBtn}
+          onClick={handleAnalyze}
+          disabled={analyzing}
+        >
+          {analyzing ? (
+            <>
+              <span className={styles.spinner} />
+              Analyzing… {elapsedSec}s
+            </>
+          ) : (
+            <>
+              <span className={styles.analyzeIcon}>🧠</span>
+              Run AI Analysis
+            </>
+          )}
+        </button>
+
+        {analyzeError && (
+          <div className={styles.analyzeError}>
+            ⚠️ {analyzeError}
+          </div>
+        )}
+      </div>
+
+      {/* Agent result panel */}
+      <div ref={resultRef}>
+        <AgentResultPanel result={agentResult} />
+      </div>
     </div>
   );
 }

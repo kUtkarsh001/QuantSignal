@@ -14,8 +14,24 @@ import agentRoutes  from './routes/agent.js';
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ── Middleware ────────────────────────────────────────────────────────────────
-app.use(cors());
+// ── CORS ─────────────────────────────────────────────────────────────────────
+// Architecture §9.2 — explicit origin allowlist.
+// In development: CORS_ORIGIN is undefined → allow localhost:5173.
+// In production : set CORS_ORIGIN on Render to your Vercel URL.
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  ...(process.env.CORS_ORIGIN ? [process.env.CORS_ORIGIN] : []),
+];
+
+app.use(cors({
+  origin: (origin, cb) => {
+    // Allow server-to-server calls (Postman, health checks) with no origin header
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    cb(new Error(`CORS: origin "${origin}" not allowed`));
+  },
+  credentials: true,
+}));
 app.use(express.json());
 
 // ── Rate Limiter — POST /api/agent/analyze only ───────────────────────────────

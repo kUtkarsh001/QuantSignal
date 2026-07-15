@@ -56,7 +56,13 @@ export function fetchStockData(symbol, period = '1mo', interval = '1d') {
 
     child.on('close', (code) => {
       if (code !== 0) {
-        return reject(new Error(`Python process exited with code ${code}: ${errorOutput}`));
+        // Python script prints errors as JSON to stdout, not stderr.
+        // Try to parse stdout first to get the real error message.
+        try {
+          const parsed = JSON.parse(output);
+          if (parsed.error) return reject(new Error(parsed.error));
+        } catch { /* ignore parse failure, fall through to stderr */ }
+        return reject(new Error(`Python process exited with code ${code}: ${errorOutput || output.slice(0, 300)}`));
       }
       try {
         const parsed = JSON.parse(output);

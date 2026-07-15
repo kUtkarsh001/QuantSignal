@@ -43,44 +43,59 @@ export function fetchStockData(symbol, period = '1mo', interval = '1d') {
   return new Promise((resolve, reject) => {
     const scriptPath = path.resolve(__dirname, '../../python/fetch_stock.py');
 
-    // Spawn Python child process — Architecture §3.4
-    // Windows uses 'python', Linux/Mac use 'python3'
-    const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
-    const child = spawn(pythonCmd, [scriptPath, symbol, period, interval]);
+    // Try python3 first, fallback to python (Render may only have 'python')
+    const candidates = process.platform === 'win32' ? ['python'] : ['python3', 'python'];
 
-    let output      = '';
-    let errorOutput = '';
+    function trySpawn(cmdIndex) {
+      if (cmdIndex >= candidates.length) {
+        return reject(new Error('No Python interpreter found. Tried: ' + candidates.join(', ')));
+      }
 
-    child.stdout.on('data', (data) => { output += data.toString(); });
-    child.stderr.on('data', (data) => { errorOutput += data.toString(); });
+      const pythonCmd = candidates[cmdIndex];
+      console.log(`[marketService] Spawning: ${pythonCmd} ${scriptPath} ${symbol} ${period} ${interval}`);
+      const child = spawn(pythonCmd, [scriptPath, symbol, period, interval]);
 
-    child.on('close', (code) => {
-      if (code !== 0) {
-        // Python script prints errors as JSON to stdout, not stderr.
-        // Try to parse stdout first to get the real error message.
+      let output      = '';
+      let errorOutput = '';
+
+      child.stdout.on('data', (data) => { output += data.toString(); });
+      child.stderr.on('data', (data) => { errorOutput += data.toString(); });
+
+      child.on('close', (code) => {
+        if (code !== 0) {
+          console.error(`[marketService] ${pythonCmd} exited with code ${code}. stderr: ${errorOutput.slice(0, 500)}. stdout: ${output.slice(0, 500)}`);
+          // Python script prints errors as JSON to stdout, not stderr.
+          try {
+            const parsed = JSON.parse(output);
+            if (parsed.error) return reject(new Error(parsed.error));
+          } catch { /* ignore */ }
+          return reject(new Error(`Python process exited with code ${code}: ${errorOutput || output.slice(0, 300)}`));
+        }
         try {
           const parsed = JSON.parse(output);
-          if (parsed.error) return reject(new Error(parsed.error));
-        } catch { /* ignore parse failure, fall through to stderr */ }
-        return reject(new Error(`Python process exited with code ${code}: ${errorOutput || output.slice(0, 300)}`));
-      }
-      try {
-        const parsed = JSON.parse(output);
-        if (parsed.error) {
-          return reject(new Error(parsed.error));
+          if (parsed.error) {
+            return reject(new Error(parsed.error));
+          }
+          const cachedAt = Date.now();
+          cache.set(cacheKey, { data: { ...parsed, cachedAt: new Date(cachedAt).toISOString() }, cachedAt });
+          resolve({ ...parsed, cachedAt: new Date(cachedAt).toISOString() });
+        } catch {
+          reject(new Error(`Failed to parse Python output: ${output.slice(0, 200)}`));
         }
-        // Store in cache with timestamp
-        const cachedAt = Date.now();
-        cache.set(cacheKey, { data: { ...parsed, cachedAt: new Date(cachedAt).toISOString() }, cachedAt });
-        resolve({ ...parsed, cachedAt: new Date(cachedAt).toISOString() });
-      } catch {
-        reject(new Error(`Failed to parse Python output: ${output.slice(0, 200)}`));
-      }
-    });
+      });
 
-    child.on('error', (err) => {
-      reject(new Error(`Failed to spawn Python process: ${err.message}`));
-    });
+      child.on('error', (err) => {
+        console.error(`[marketService] Failed to spawn '${pythonCmd}': ${err.message}`);
+        // ENOENT means command not found — try next candidate
+        if (err.code === 'ENOENT') {
+          trySpawn(cmdIndex + 1);
+        } else {
+          reject(new Error(`Failed to spawn Python process: ${err.message}`));
+        }
+      });
+    }
+
+    trySpawn(0);
   });
 }
 

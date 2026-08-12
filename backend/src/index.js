@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
+import helmet from 'helmet';
 import { connectDB } from './config/db.js';
 
 // ── Route imports ─────────────────────────────────────────────────────────────
@@ -13,6 +14,10 @@ import agentRoutes  from './routes/agent.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// ── Security Headers (helmet) ────────────────────────────────────────────────
+// Sets X-Content-Type-Options, Strict-Transport-Security, X-Frame-Options, etc.
+app.use(helmet());
 
 // ── CORS ─────────────────────────────────────────────────────────────────────
 // Architecture §9.2 — explicit origin allowlist.

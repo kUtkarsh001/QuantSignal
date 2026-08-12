@@ -24,7 +24,6 @@ dist-ssr
 *.sw?
 
 .env
-.env.local
-# Note: .env.production is intentionally NOT ignored — it contains only the
-# public Render API URL (no secrets) and must be committed for Vercel builds.
+.env.*
+!.env.example
 
